@@ -1,0 +1,200 @@
+// /home/sabir/HolyBrook/B/AdmResApp2026/prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// User & Auth (NextAuth)
+model User {
+  id             String          @id @default(cuid())
+  name           String?
+  email          String?         @unique
+  emailVerified  DateTime?
+  image          String?
+  password       String?
+  role           Role            @default(TEACHER)
+  accounts       Account[]
+  sessions       Session[]
+  teacherProfile TeacherProfile?
+  staffProfile   StaffProfile?
+}
+
+enum Role {
+  ADMIN
+  TEACHER
+  STAFF
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// School Data Models
+model SchoolSession {
+  id        String    @id @default(cuid())
+  name      String    @unique // e.g. 2025-2026
+  startDate DateTime?
+  endDate   DateTime?
+  isCurrent Boolean   @default(false)
+}
+
+model SchoolBranch {
+  id      String  @id @default(cuid())
+  name    String  @unique
+  address String?
+}
+
+model Student {
+  stId             String   @id // e.g., H100001
+  cbseReg          String?
+  admDate          DateTime
+  sessionYear      String
+  schoolBranch     String
+  stream           String   @default("None")
+  className        String
+  section          String
+  rollNo           Int?
+  studentName      String
+  sex              String
+  dob              DateTime
+  studentAadhaar   String?
+  fathersName      String
+  fathersAadhaar   String?
+  mothersName      String?
+  mothersAadhaar   String?
+  contact1         String
+  contact2         String?
+  contact3         String?
+  contact4         String?
+  address          String?
+  city             String?
+  state            String?
+  pin              String?
+  parentOccupation String?
+  siblingStId      String?
+  daysPresent      Int?     @default(0)
+  totalDays        Int?     @default(0)
+  promotionStatus  String?
+  studentPhoto     String?
+
+  subjects     StudentSubject[]
+  marks        MarksEntry[]
+  coScholastic CoScholasticResult?
+}
+
+model Subject {
+  id         String  @id @default(cuid())
+  name       String
+  code       String?
+  isOptional Boolean @default(false)
+
+  studentSubjects StudentSubject[]
+  marks           MarksEntry[]
+}
+
+model StudentSubject {
+  id        String @id @default(cuid())
+  studentId String
+  subjectId String
+
+  student Student @relation(fields: [studentId], references: [stId], onDelete: Cascade)
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, subjectId])
+}
+
+model MarksEntry {
+  id                String @id @default(cuid())
+  studentId         String
+  subjectId         String
+  term              Int // 1 or 2
+  periodicTest      Float  @default(0) // Max 40
+  notebook          Float  @default(5) // Max 5
+  subjectEnrichment Float  @default(5) // Max 5
+  examMarks         Float  @default(0) // Max 80
+  practicalMarks    Float  @default(0) // Max 30
+
+  student Student @relation(fields: [studentId], references: [stId], onDelete: Cascade)
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, subjectId, term])
+}
+
+model CoScholasticResult {
+  id                String @id @default(cuid())
+  studentId         String @unique
+  workEducationT1   String @default("A")
+  workEducationT2   String @default("A")
+  artEducationT1    String @default("A")
+  artEducationT2    String @default("A")
+  healthEducationT1 String @default("A")
+  healthEducationT2 String @default("A")
+  regularityT1      String @default("A")
+  regularityT2      String @default("A")
+  sincerityT1       String @default("A")
+  sincerityT2       String @default("A")
+  behaviourT1       String @default("A")
+  behaviourT2       String @default("A")
+
+  student Student @relation(fields: [studentId], references: [stId], onDelete: Cascade)
+}
+
+model TeacherProfile {
+  id              String  @id @default(cuid())
+  userId          String  @unique
+  schoolBranch    String?
+  assignedClass   String?
+  assignedSection String?
+  qualification   String?
+  designation     String?
+  address         String?
+  contact         String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model StaffProfile {
+  id            String  @id @default(cuid())
+  userId        String  @unique
+  qualification String?
+  designation   String?
+  address       String?
+  contact       String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
